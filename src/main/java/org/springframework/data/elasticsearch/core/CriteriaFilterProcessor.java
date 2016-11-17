@@ -22,10 +22,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.index.query.*;
 import org.springframework.data.elasticsearch.core.geo.GeoBox;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.elasticsearch.core.geo.GeoPolygon;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.geo.*;
 import org.springframework.util.Assert;
@@ -107,41 +109,12 @@ class CriteriaFilterProcessor {
 
 		switch (key) {
 			case WITHIN: {
-				GeoDistanceQueryBuilder geoDistanceQueryBuilder = QueryBuilders.geoDistanceQuery(fieldName);
 
-				Assert.isTrue(value instanceof Object[], "Value of a geo distance filter should be an array of two values.");
-				Object[] valArray = (Object[]) value;
-				Assert.noNullElements(valArray, "Geo distance filter takes 2 not null elements array as parameter.");
-				Assert.isTrue(valArray.length == 2, "Geo distance filter takes a 2-elements array as parameter.");
-				Assert.isTrue(valArray[0] instanceof GeoPoint || valArray[0] instanceof String || valArray[0] instanceof Point, "First element of a geo distance filter must be a GeoPoint, a Point or a String");
-				Assert.isTrue(valArray[1] instanceof String || valArray[1] instanceof Distance, "Second element of a geo distance filter must be a String or a Distance");
-
-				StringBuilder dist = new StringBuilder();
-
-				if (valArray[1] instanceof Distance) {
-					extractDistanceString((Distance) valArray[1], dist);
+				if(value instanceof Object[]) {
+					filter = filterPointCriteria(value, fieldName);
 				} else {
-					dist.append((String) valArray[1]);
+					filter = filterShape(value, fieldName);
 				}
-
-				if (valArray[0] instanceof GeoPoint) {
-					GeoPoint loc = (GeoPoint) valArray[0];
-					geoDistanceQueryBuilder.lat(loc.getLat()).lon(loc.getLon()).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
-				} else if (valArray[0] instanceof Point) {
-					GeoPoint loc = GeoPoint.fromPoint((Point) valArray[0]);
-					geoDistanceQueryBuilder.lat(loc.getLat()).lon(loc.getLon()).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
-				}
-				else {
-					String loc = (String) valArray[0];
-					if (loc.contains(",")) {
-						String c[] = loc.split(",");
-						geoDistanceQueryBuilder.lat(Double.parseDouble(c[0])).lon(Double.parseDouble(c[1])).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
-					} else {
-						geoDistanceQueryBuilder.geohash(loc).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
-					}
-				}
-				filter = geoDistanceQueryBuilder;
-
 				break;
 			}
 
@@ -168,6 +141,60 @@ class CriteriaFilterProcessor {
 		}
 
 		return filter;
+	}
+
+	private QueryBuilder filterShape(Object value, String fieldName) {
+		GeoPolygonQueryBuilder geoPolygonQueryBuilder = QueryBuilders.geoPolygonQuery(fieldName);
+		if(value instanceof Polygon) {
+			for(Point point : ((Polygon) value).getPoints()) {
+				geoPolygonQueryBuilder.addPoint(point.getX(), point.getY());
+			}
+		}else if(value instanceof GeoPolygon) {
+			for(GeoPoint point : ((GeoPolygon) value).getCoordinates()) {
+				geoPolygonQueryBuilder.addPoint(point.getLat(), point.getLon());
+			}
+		}
+
+		return geoPolygonQueryBuilder;
+	}
+
+	private QueryBuilder filterPointCriteria(Object value, String fieldName) {
+		GeoDistanceQueryBuilder geoDistanceQueryBuilder = QueryBuilders.geoDistanceQuery(fieldName);
+
+		Assert.isTrue(value instanceof Object[], "Value of a geo distance filter should be an array of two values.");
+		Object[] valArray = (Object[]) value;
+		Assert.noNullElements(valArray, "Geo distance filter takes 2 not null elements array as parameter.");
+		Assert.isTrue(valArray.length == 2, "Geo distance filter takes a 2-elements array as parameter.");
+		Assert.isTrue(valArray[0] instanceof GeoPoint || valArray[0] instanceof String || valArray[0] instanceof Point, "First element of a geo distance filter must be a GeoPoint, a Point or a String");
+		Assert.isTrue(valArray[1] instanceof String || valArray[1] instanceof Distance, "Second element of a geo distance filter must be a String or a Distance");
+
+		StringBuilder dist = new StringBuilder();
+
+		if (valArray[1] instanceof Distance) {
+            extractDistanceString((Distance) valArray[1], dist);
+        } else {
+            dist.append((String) valArray[1]);
+        }
+
+		if (valArray[0] instanceof GeoPoint) {
+            GeoPoint loc = (GeoPoint) valArray[0];
+            geoDistanceQueryBuilder.lat(loc.getLat()).lon(loc.getLon()).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
+        } else if (valArray[0] instanceof Point) {
+            GeoPoint loc = GeoPoint.fromPoint((Point) valArray[0]);
+            geoDistanceQueryBuilder.lat(loc.getLat()).lon(loc.getLon()).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
+        }
+
+
+        else {
+            String loc = (String) valArray[0];
+            if (loc.contains(",")) {
+                String c[] = loc.split(",");
+                geoDistanceQueryBuilder.lat(Double.parseDouble(c[0])).lon(Double.parseDouble(c[1])).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
+            } else {
+                geoDistanceQueryBuilder.geohash(loc).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
+            }
+        }
+		return geoDistanceQueryBuilder;
 	}
 
 
