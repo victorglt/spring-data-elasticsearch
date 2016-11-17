@@ -12,11 +12,13 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.data.geo.Point;
+import org.springframework.data.geo.Polygon;
 
 /**
  * @author Artur Konaczak
  */
-public class CustomGeoModule extends SimpleModule {
+public class
+CustomGeoModule extends SimpleModule {
 
 	private static final long serialVersionUID = 1L;
 
@@ -27,7 +29,9 @@ public class CustomGeoModule extends SimpleModule {
 
 		super("Spring Data Elasticsearch Geo", new Version(1, 0, 0, null, "org.springframework.data.elasticsearch", "spring-data-elasticsearch-geo"));
 		addSerializer(Point.class, new PointSerializer());
+		addSerializer(Polygon.class, new PolygonSerializer());
 		addDeserializer(Point.class, new PointDeserializer());
+		addDeserializer(Polygon.class, new PolygonDeserializer());
 	}
 }
 
@@ -66,5 +70,23 @@ class PointDeserializer extends JsonDeserializer<Point> {
 //		}
 //		return new Point(lon, lat);
 		return GeoPoint.toPoint(point);
+	}
+}
+
+class PolygonDeserializer extends JsonDeserializer<Polygon> {
+
+	@Override
+	public Polygon deserialize(JsonParser p, DeserializationContext context) throws IOException {
+		GeoPolygon polygon = p.readValueAs(GeoPolygon.class);
+
+		return GeoPolygon.toPolygon(polygon);
+	}
+}
+
+class PolygonSerializer extends JsonSerializer<Polygon> {
+
+	@Override
+	public void serialize(Polygon value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
+		gen.writeObject(GeoPolygon.fromPolygon(value));
 	}
 }

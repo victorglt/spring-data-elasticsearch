@@ -27,10 +27,7 @@ import org.elasticsearch.index.query.*;
 import org.springframework.data.elasticsearch.core.geo.GeoBox;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.data.elasticsearch.core.query.Criteria;
-import org.springframework.data.geo.Box;
-import org.springframework.data.geo.Distance;
-import org.springframework.data.geo.Metrics;
-import org.springframework.data.geo.Point;
+import org.springframework.data.geo.*;
 import org.springframework.util.Assert;
 
 /**
@@ -133,7 +130,8 @@ class CriteriaFilterProcessor {
 				} else if (valArray[0] instanceof Point) {
 					GeoPoint loc = GeoPoint.fromPoint((Point) valArray[0]);
 					geoDistanceQueryBuilder.lat(loc.getLat()).lon(loc.getLon()).distance(dist.toString()).geoDistance(GeoDistance.PLANE);
-				} else {
+				}
+				else {
 					String loc = (String) valArray[0];
 					if (loc.contains(",")) {
 						String c[] = loc.split(",");

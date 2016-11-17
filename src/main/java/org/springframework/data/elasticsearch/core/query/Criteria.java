@@ -21,9 +21,11 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.elasticsearch.core.geo.GeoBox;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.elasticsearch.core.geo.GeoPolygon;
 import org.springframework.data.geo.Box;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
+import org.springframework.data.geo.Polygon;
 import org.springframework.util.Assert;
 
 /**
@@ -394,13 +396,35 @@ public class Criteria {
 	}
 
 	/**
+	 * Creates new CriteriaEntry for {@code location WITHIN polygon}
+	 * @param polygon {@link org.springframework.data.elasticsearch.core.geo.GeoPolygon} polygon shape
+	 * @return Criteria the chained criteria with the new 'within' criteria included.
+     */
+	public Criteria within(GeoPolygon polygon) {
+		Assert.notNull(polygon, "Polygon shape for within criteria must not be null");
+		filterCriteria.add(new CriteriaEntry(OperationKey.WITHIN, polygon));
+		return this;
+	}
+
+	/**
+	 * Creates new CriteriaEntry for {@code location WITHIN polygon}
+	 * @param polygon {@link org.springframework.data.geo.Polygon} polygon shape
+	 * @return Criteria the chained criteria with the new 'within' criteria included.
+	 */
+	public Criteria within(Polygon polygon) {
+		Assert.notNull(polygon, "Polygon shape for within criteria must not be null");
+		filterCriteria.add(new CriteriaEntry(OperationKey.WITHIN, polygon));
+		return this;
+	}
+
+	/**
 	 * Creates new CriteriaEntry for {@code location WITHIN distance}
 	 *
 	 * @param location {@link org.springframework.data.elasticsearch.core.geo.GeoPoint} center coordinates
 	 * @param distance {@link String} radius as a string (e.g. : '100km').
 	 * Distance unit :
 	 * either mi/miles or km can be set
-	 * @return Criteria the chaind criteria with the new 'within' criteria included.
+	 * @return Criteria the chained criteria with the new 'within' criteria included.
 	 */
 	public Criteria within(GeoPoint location, String distance) {
 		Assert.notNull(location, "Location value for near criteria must not be null");
