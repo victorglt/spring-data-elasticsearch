@@ -35,6 +35,7 @@ import org.springframework.data.elasticsearch.annotations.*;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.core.completion.Completion;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.elasticsearch.core.geo.GeoPolygon;
 import org.springframework.data.mapping.model.SimpleTypeHolder;
 import org.springframework.data.util.ClassTypeInformation;
 import org.springframework.data.util.TypeInformation;
@@ -68,6 +69,7 @@ class MappingBuilder {
 	public static final String INDEX_VALUE_NOT_ANALYZED = "not_analyzed";
 	public static final String TYPE_VALUE_STRING = "string";
 	public static final String TYPE_VALUE_GEO_POINT = "geo_point";
+	public static final String TYPE_VALUE_GEO_SHAPE = "geo_shape";
 	public static final String TYPE_VALUE_COMPLETION = "completion";
 	public static final String TYPE_VALUE_GEO_HASH_PREFIX = "geohash_prefix";
 	public static final String TYPE_VALUE_GEO_HASH_PRECISION = "geohash_precision";
@@ -125,6 +127,7 @@ class MappingBuilder {
 				}
 			}
 
+			boolean isGeoShapeField = isGeoShapeField(field);
 			boolean isGeoPointField = isGeoPointField(field);
 			boolean isCompletionField = isCompletionField(field);
 
@@ -144,6 +147,10 @@ class MappingBuilder {
 
 			if (isGeoPointField) {
 				applyGeoPointFieldMapping(xContentBuilder, field);
+			}
+
+			if (isGeoShapeField) {
+				applyGeoShapeFieldMapping(xContentBuilder, field);
 			}
 
 			if (isCompletionField) {
@@ -185,6 +192,27 @@ class MappingBuilder {
 				field.getAnnotation(MultiField.class) != null ||
 				field.getAnnotation(GeoPointField.class) != null ||
 				field.getAnnotation(CompletionField.class) != null;
+	}
+
+	private static void applyGeoShapeFieldMapping(XContentBuilder xContentBuilder, java.lang.reflect.Field field) throws IOException {
+		xContentBuilder.startObject(field.getName());
+		xContentBuilder.field(FIELD_TYPE, TYPE_VALUE_GEO_SHAPE);
+
+	/*	GeoPointField annotation = field.getAnnotation(GeoPointField.class);
+		if (annotation != null) {
+			if (annotation.geoHashPrefix()) {
+				xContentBuilder.field(TYPE_VALUE_GEO_HASH_PREFIX, true);
+				if (StringUtils.isNotEmpty(annotation.geoHashPrecision())) {
+					if (NumberUtils.isNumber(annotation.geoHashPrecision())) {
+						xContentBuilder.field(TYPE_VALUE_GEO_HASH_PRECISION, Integer.parseInt(annotation.geoHashPrecision()));
+					} else {
+						xContentBuilder.field(TYPE_VALUE_GEO_HASH_PRECISION, annotation.geoHashPrecision());
+					}
+				}
+			}
+		} */
+
+		xContentBuilder.endObject();
 	}
 
 	private static void applyGeoPointFieldMapping(XContentBuilder xContentBuilder, java.lang.reflect.Field field) throws IOException {
@@ -353,6 +381,10 @@ class MappingBuilder {
 
 	private static boolean isGeoPointField(java.lang.reflect.Field field) {
 		return field.getType() == GeoPoint.class || field.getAnnotation(GeoPointField.class) != null;
+	}
+
+	private static boolean isGeoShapeField(java.lang.reflect.Field field) {
+		return field.getType() == GeoPolygon.class; //TODO implement annotation
 	}
 
 	private static boolean isCompletionField(java.lang.reflect.Field field) {

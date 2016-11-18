@@ -23,6 +23,7 @@ import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 import org.springframework.data.elasticsearch.annotations.ScriptedField;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.elasticsearch.core.geo.GeoPolygon;
 
 /**
  * @author Rizwan Idrees
@@ -49,6 +50,8 @@ public class SampleEntity {
 	private String highlightedMessage;
 
 	private GeoPoint location;
+
+	private GeoPolygon area;
 
 	@Version
 	private Long version;

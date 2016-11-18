@@ -402,7 +402,7 @@ public class Criteria {
      */
 	public Criteria within(GeoPolygon polygon) {
 		Assert.notNull(polygon, "Polygon shape for within criteria must not be null");
-		filterCriteria.add(new CriteriaEntry(OperationKey.WITHIN, polygon));
+		filterCriteria.add(new CriteriaEntry(OperationKey.WITHIN_SHAPE, polygon));
 		return this;
 	}
 
@@ -413,7 +413,7 @@ public class Criteria {
 	 */
 	public Criteria within(Polygon polygon) {
 		Assert.notNull(polygon, "Polygon shape for within criteria must not be null");
-		filterCriteria.add(new CriteriaEntry(OperationKey.WITHIN, polygon));
+		filterCriteria.add(new CriteriaEntry(OperationKey.WITHIN_SHAPE, polygon));
 		return this;
 	}
 
@@ -611,7 +611,7 @@ public class Criteria {
 	}
 
 	public enum OperationKey {
-		EQUALS, CONTAINS, STARTS_WITH, ENDS_WITH, EXPRESSION, BETWEEN, FUZZY, IN, NOT_IN, WITHIN, BBOX, NEAR, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL;
+		EQUALS, CONTAINS, STARTS_WITH, ENDS_WITH, EXPRESSION, BETWEEN, FUZZY, IN, NOT_IN, WITHIN, BBOX, NEAR, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, WITHIN_SHAPE;
 	}
 
 	public static class CriteriaEntry {

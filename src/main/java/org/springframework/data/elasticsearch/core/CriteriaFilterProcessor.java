@@ -24,6 +24,9 @@ import java.util.ListIterator;
 
 import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.common.geo.GeoDistance;
+import org.elasticsearch.common.geo.ShapeRelation;
+import org.elasticsearch.common.geo.builders.PolygonBuilder;
+import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.index.query.*;
 import org.springframework.data.elasticsearch.core.geo.GeoBox;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
@@ -108,13 +111,12 @@ class CriteriaFilterProcessor {
 		QueryBuilder filter = null;
 
 		switch (key) {
+			case WITHIN_SHAPE: {
+				filter = filterShape(value, fieldName);
+				break;
+			}
 			case WITHIN: {
-
-				if(value instanceof Object[]) {
-					filter = filterPointCriteria(value, fieldName);
-				} else {
-					filter = filterShape(value, fieldName);
-				}
+				filter = filterPointCriteria(value, fieldName);
 				break;
 			}
 
@@ -144,18 +146,18 @@ class CriteriaFilterProcessor {
 	}
 
 	private QueryBuilder filterShape(Object value, String fieldName) {
-		GeoPolygonQueryBuilder geoPolygonQueryBuilder = QueryBuilders.geoPolygonQuery(fieldName);
+		PolygonBuilder polygonBuilder = ShapeBuilder.newPolygon();
 		if(value instanceof Polygon) {
 			for(Point point : ((Polygon) value).getPoints()) {
-				geoPolygonQueryBuilder.addPoint(point.getX(), point.getY());
+				polygonBuilder.point(point.getX(), point.getY());
 			}
 		}else if(value instanceof GeoPolygon) {
 			for(GeoPoint point : ((GeoPolygon) value).getCoordinates()) {
-				geoPolygonQueryBuilder.addPoint(point.getLat(), point.getLon());
+				polygonBuilder.point(point.getLat(), point.getLon());
 			}
 		}
 
-		return geoPolygonQueryBuilder;
+		return QueryBuilders.geoShapeQuery(fieldName, polygonBuilder, ShapeRelation.WITHIN);
 	}
 
 	private QueryBuilder filterPointCriteria(Object value, String fieldName) {

@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 import static org.springframework.data.elasticsearch.utils.IndexBuilder.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
@@ -30,8 +31,12 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.geo.GeoPoint;
+import org.springframework.data.elasticsearch.core.geo.GeoPolygon;
 import org.springframework.data.elasticsearch.entities.SampleEntity;
+import org.springframework.data.elasticsearch.repositories.book.SampleElasticSearchBookRepository;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
@@ -191,6 +196,48 @@ public class CriteriaQueryTests {
 		// then
 		assertThat("message", is(criteriaQuery.getCriteria().getField().getName()));
 		assertThat(page.getTotalElements(), is(greaterThanOrEqualTo(1L)));
+	}
+
+	@Test
+	public void shouldPerformShapeWithinOperations() {
+		List<IndexQuery> indexQueries = new ArrayList<IndexQuery>();
+
+		SampleEntity sampleEntity1 = new SampleEntity();
+
+		String documentId = randomNumeric(5);
+		GeoPolygon polygon = new GeoPolygon(
+				Arrays.asList(
+						new GeoPoint(25.774, -80.190),
+						new GeoPoint(18.466, -66.118),
+						new GeoPoint(32.321, -64.757),
+						new GeoPoint(25.774, -80.190)
+				)
+		);
+
+		sampleEntity1.setArea(polygon);
+
+		IndexQuery indexQuery1 = new IndexQuery();
+		indexQuery1.setId(documentId);
+		indexQuery1.setObject(sampleEntity1);
+		indexQueries.add(indexQuery1);
+
+		elasticsearchTemplate.bulkIndex(indexQueries);
+		elasticsearchTemplate.refresh(SampleEntity.class);
+
+		GeoPolygon target = new GeoPolygon(
+				Arrays.asList(
+						new GeoPoint(25.103, -74.290),
+						new GeoPoint(24.661, -74.171),
+						new GeoPoint(24.744, -74.899)
+				)
+		);
+
+		CriteriaQuery criteriaQuery = new CriteriaQuery(new Criteria("area").within(target));
+		// when
+		Page<SampleEntity> page = elasticsearchTemplate.queryForPage(criteriaQuery, SampleEntity.class);
+		// then
+		assertThat("area", is(criteriaQuery.getCriteria().getField().getName()));
+		assertThat(page.getTotalElements(), is(equalTo(1L)));
 	}
 
 	@Test
